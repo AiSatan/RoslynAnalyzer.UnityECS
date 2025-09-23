@@ -21,6 +21,9 @@ This analyzer includes rules to enforce best practices in Unity Dots development
 4. Click blue icon on the bottom and seelct RoslyanAnalizer
 5. Restart Visual Studio or your IDE to load the analyzer.
 
+   <img width="571" height="1292" alt="image" src="https://github.com/user-attachments/assets/3a104f4d-3d69-4a84-b647-e809ff1e04a3" />
+
+
 
 ### Manual Installation
 
