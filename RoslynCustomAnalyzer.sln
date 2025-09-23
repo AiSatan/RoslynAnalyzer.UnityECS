@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoslynCustomAnalyzer", "RoslynCustomAnalyzer\RoslynCustomAnalyzer\RoslynCustomAnalyzer.csproj", "{2E86DD6C-ED50-412D-9855-FAD35EE9C428}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoslynCustomAnalyzer.Tests", "RoslynCustomAnalyzer\RoslynCustomAnalyzer.Tests\RoslynCustomAnalyzer.Tests.csproj", "{EACED9ED-00F0-4FC0-8145-F4F25926D59D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2E86DD6C-ED50-412D-9855-FAD35EE9C428}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E86DD6C-ED50-412D-9855-FAD35EE9C428}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E86DD6C-ED50-412D-9855-FAD35EE9C428}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E86DD6C-ED50-412D-9855-FAD35EE9C428}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EACED9ED-00F0-4FC0-8145-F4F25926D59D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EACED9ED-00F0-4FC0-8145-F4F25926D59D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EACED9ED-00F0-4FC0-8145-F4F25926D59D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EACED9ED-00F0-4FC0-8145-F4F25926D59D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
