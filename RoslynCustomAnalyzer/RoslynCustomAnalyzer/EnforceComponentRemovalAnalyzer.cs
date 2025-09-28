@@ -40,27 +40,53 @@ namespace RoslynCustomAnalyzer
             var typeSymbol = context.SemanticModel.GetDeclaredSymbol(containingType) as INamedTypeSymbol;
             if (typeSymbol == null || !typeSymbol.AllInterfaces.Any(i => i.Name == "IJobEntity")) return;
 
-            // Analyze each parameter in the Execute method
+            // Collect components that require removal from parameters and attributes
+            var componentsToCheck = new List<(INamedTypeSymbol type, Location location, string name)>();
+
+            // From parameters
             foreach (var parameter in methodDeclaration.ParameterList.Parameters)
             {
-                // Get the parameter type symbol
                 var parameterType = context.SemanticModel.GetTypeInfo(parameter.Type).Type as INamedTypeSymbol;
                 if (parameterType == null) continue;
 
-                // Check if it's IComponentData and implements IComponentMustBeRemoved
                 bool isComponentData = parameterType.AllInterfaces.Any(i => i.Name == "IComponentData");
                 bool implementsMustBeRemoved = parameterType.AllInterfaces.Any(i => i.Name == "IComponentMustBeRemoved");
-                if (!isComponentData || !implementsMustBeRemoved) continue;
+                if (isComponentData && implementsMustBeRemoved)
+                {
+                    componentsToCheck.Add((parameterType, parameter.Identifier.GetLocation(), parameter.Identifier.Text));
+                }
+            }
 
-                string componentTypeName = parameterType.ToDisplayString();
+            // From any attribute that uses typeof(Component), except WithNone
+            var attributes = containingType.AttributeLists.SelectMany(al => al.Attributes);
+            foreach (var attribute in attributes)
+            {
+                var attributeName = attribute.Name.ToString();
+                if (attributeName.StartsWith("With") && attributeName != "WithNone")
+                {
+                    foreach (var arg in attribute.ArgumentList?.Arguments ?? Enumerable.Empty<AttributeArgumentSyntax>())
+                    {
+                        if (arg.Expression is TypeOfExpressionSyntax typeofExpr)
+                        {
+                            var attrTypeSymbol = context.SemanticModel.GetTypeInfo(typeofExpr.Type).Type as INamedTypeSymbol;
+                            if (attrTypeSymbol != null && attrTypeSymbol.AllInterfaces.Any(i => i.Name == "IComponentData") && attrTypeSymbol.AllInterfaces.Any(i => i.Name == "IComponentMustBeRemoved"))
+                            {
+                                componentsToCheck.Add((attrTypeSymbol, typeofExpr.GetLocation(), attrTypeSymbol.Name));
+                            }
+                        }
+                    }
+                }
+            }
 
-                // Check if the struct has RemoveComponent call with the component type
+            // Check and report diagnostics for each component
+            foreach (var (type, location, name) in componentsToCheck)
+            {
+                string componentTypeName = type.ToDisplayString();
                 bool hasRemoveComponent = HasRemoveComponentCall(context, containingType, methodDeclaration, componentTypeName);
 
-                // If no RemoveComponent call, report diagnostic
                 if (!hasRemoveComponent)
                 {
-                    var diagnostic = Diagnostic.Create(Rule, parameter.Identifier.GetLocation(), parameter.Identifier.Text);
+                    var diagnostic = Diagnostic.Create(Rule, location, name);
                     context.ReportDiagnostic(diagnostic);
                 }
             }

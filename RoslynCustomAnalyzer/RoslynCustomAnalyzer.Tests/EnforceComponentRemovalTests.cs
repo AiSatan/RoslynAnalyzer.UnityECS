@@ -29,6 +29,10 @@ namespace RoslynCustomAnalyzer.Tests
             public class BurstCompile : System.Attribute {}
             public class ChunkIndexInQuery : System.Attribute {}
             public class ReadOnly : System.Attribute {}
+            public class WithAllAttribute : System.Attribute
+            {
+                public WithAllAttribute(params System.Type[] types) {}
+            }
             public struct TempComponent : Unity.Entities.IComponentData, Unity.Entities.IComponentMustBeRemoved {}
             public struct HealthComponent : Unity.Entities.IComponentData {}
             public struct DamageModule {}
@@ -161,6 +165,28 @@ namespace RoslynCustomAnalyzer.Tests
                 }";
 
             await AnalyzerVerifier.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Fact]
+        public async Task WithAllAttributeWithIComponentMustBeRemovedComponent_TriggersWarning()
+        {
+            var testCode = Stubs + @"
+                [WithAll({|#0:typeof(TempComponent)|})]
+                [BurstCompile]
+                public partial struct TempComponentProcessorJob : Unity.Entities.IJobEntity
+                {
+                    public Unity.Entities.EntityCommandBuffer.ParallelWriter Ecb;
+                    private void Execute([ChunkIndexInQuery] in int index, in Unity.Entities.Entity entity)
+                    {
+                        // no RemoveComponent
+                    }
+                }";
+
+            var expected = AnalyzerVerifier.Diagnostic(EnforceComponentRemovalAnalyzer.DiagnosticId)
+                .WithLocation(0)
+                .WithArguments("TempComponent");
+
+            await AnalyzerVerifier.VerifyAnalyzerAsync(testCode, expected);
         }
     }
 }

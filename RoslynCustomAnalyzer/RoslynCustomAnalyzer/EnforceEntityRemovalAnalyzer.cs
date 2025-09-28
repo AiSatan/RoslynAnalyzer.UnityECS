@@ -50,25 +50,53 @@ namespace RoslynCustomAnalyzer
 
             string entityName = entityParameter.Identifier.Text;
 
-            // Check if the struct has DestroyEntity call with the entity
-            bool hasDestroyEntity = HasDestroyEntityCall(containingType, methodDeclaration, entityName);
+            // Collect components that require removal from parameters and attributes
+            var componentsToCheck = new List<(INamedTypeSymbol type, Location location, string name)>();
 
-            // Analyze each parameter in the Execute method
+            // From parameters
             foreach (var parameter in methodDeclaration.ParameterList.Parameters)
             {
-                // Get the parameter type symbol
                 var parameterType = context.SemanticModel.GetTypeInfo(parameter.Type).Type as INamedTypeSymbol;
                 if (parameterType == null) continue;
 
-                // Check if it's IComponentData and implements IEntityMustBeRemoved
                 bool isComponentData = parameterType.AllInterfaces.Any(i => i.Name == "IComponentData");
                 bool implementsMustBeRemoved = parameterType.AllInterfaces.Any(i => i.Name == "IEntityMustBeRemoved");
-                if (!isComponentData || !implementsMustBeRemoved) continue;
+                if (isComponentData && implementsMustBeRemoved)
+                {
+                    componentsToCheck.Add((parameterType, parameter.Identifier.GetLocation(), parameter.Identifier.Text));
+                }
+            }
 
-                // If no DestroyEntity call, report diagnostic
+            // From any attribute that uses typeof(Component), except WithNone
+            var attributes = containingType.AttributeLists.SelectMany(al => al.Attributes);
+            foreach (var attribute in attributes)
+            {
+                var attributeName = attribute.Name.ToString();
+                if (attributeName.StartsWith("With") && attributeName != "WithNone")
+                {
+                    foreach (var arg in attribute.ArgumentList?.Arguments ?? Enumerable.Empty<AttributeArgumentSyntax>())
+                    {
+                        if (arg.Expression is TypeOfExpressionSyntax typeofExpr)
+                        {
+                            var attrTypeSymbol = context.SemanticModel.GetTypeInfo(typeofExpr.Type).Type as INamedTypeSymbol;
+                            if (attrTypeSymbol != null && attrTypeSymbol.AllInterfaces.Any(i => i.Name == "IComponentData") && attrTypeSymbol.AllInterfaces.Any(i => i.Name == "IEntityMustBeRemoved"))
+                            {
+                                componentsToCheck.Add((attrTypeSymbol, typeofExpr.GetLocation(), attrTypeSymbol.Name));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Check if DestroyEntity is called
+            bool hasDestroyEntity = HasDestroyEntityCall(containingType, methodDeclaration, entityName);
+
+            // Report diagnostics for each component that requires removal
+            foreach (var (type, location, name) in componentsToCheck)
+            {
                 if (!hasDestroyEntity)
                 {
-                    var diagnostic = Diagnostic.Create(Rule, parameter.Identifier.GetLocation(), parameter.Identifier.Text);
+                    var diagnostic = Diagnostic.Create(Rule, location, name);
                     context.ReportDiagnostic(diagnostic);
                 }
             }

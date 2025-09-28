@@ -21,17 +21,25 @@ namespace RoslynCustomAnalyzer.Tests
                     public struct ParallelWriter
                     {
                         public void DestroyEntity(int index, Entity entity) {}
+                        public void AddBuffer<T>(int index, Entity entity) {}
+                        public void AppendToBuffer<T>(int index, Entity entity, T value) {}
                     }
                 }
             }
             public class BurstCompile : System.Attribute {}
             public class ChunkIndexInQuery : System.Attribute {}
             public class ReadOnly : System.Attribute {}
-            public struct HitEventComponent : Unity.Entities.IComponentData, Unity.Entities.IEntityMustBeRemoved {}
+            public class WithAllAttribute : System.Attribute
+            {
+                public WithAllAttribute(params System.Type[] types) {}
+            }
+            public struct HitEventComponent : Unity.Entities.IComponentData, Unity.Entities.IEntityMustBeRemoved { public Unity.Entities.Entity Target { get; } public Unity.Entities.Entity Owner { get; } }
             public struct HealthComponent : Unity.Entities.IComponentData {}
             public struct DamageModule {}
-            public struct BufferLookup<T> {}
-            public struct ComponentLookup<T> {}
+            public struct DynamicBuffer<T> {}
+            public struct HealthChangedEvent { public float Value; public Unity.Entities.Entity Invoker; }
+            public struct BufferLookup<T> { public bool TryGetBuffer(Unity.Entities.Entity entity, out DynamicBuffer<T> buffer) { buffer = default; return false; } }
+            public struct ComponentLookup<T> { public bool TryGetComponent(Unity.Entities.Entity entity, out T component) { component = default; return false; } }
         ";
 
         [Fact]
@@ -200,10 +208,10 @@ namespace RoslynCustomAnalyzer.Tests
                         }
 
                         Ecb.AddBuffer<HealthChangedEvent>(index, hitEvent.Target);
-                        foreach (var module in damageModules)
-                        {
-                            Ecb.AppendToBuffer(index, hitEvent.Target, new HealthChangedEvent { Value = module.Value, Invoker = hitEvent.Owner});
-                        }
+                        // foreach (var module in damageModules)
+                        // {
+                        //     Ecb.AppendToBuffer(index, hitEvent.Target, new HealthChangedEvent { Value = module.Value, Invoker = hitEvent.Owner});
+                        // }
                     }
 
                     private void Cleanup(in int index,
@@ -216,6 +224,29 @@ namespace RoslynCustomAnalyzer.Tests
             var expected = AnalyzerVerifier.Diagnostic(EnforceEntityRemovalAnalyzer.DiagnosticId)
                 .WithLocation(0)
                 .WithArguments("hitEvent");
+
+            await AnalyzerVerifier.VerifyAnalyzerAsync(testCode, expected);
+        }
+
+        [Fact]
+        public async Task WithAllAttributeWithIEntityMustBeRemovedComponent_TriggersWarning()
+        {
+            var testCode = Stubs + @"
+                [WithAll({|#0:typeof(HitEventComponent)|})]
+                [BurstCompile]
+                public partial struct HitEventProcessorSystemJob : Unity.Entities.IJobEntity
+                {
+                    public Unity.Entities.EntityCommandBuffer.ParallelWriter Ecb;
+
+                    private void Execute([ChunkIndexInQuery] in int index, in Unity.Entities.Entity eventEntity)
+                    {
+                        // no DestroyEntity
+                    }
+                }";
+
+            var expected = AnalyzerVerifier.Diagnostic(EnforceEntityRemovalAnalyzer.DiagnosticId)
+                .WithLocation(0)
+                .WithArguments("HitEventComponent");
 
             await AnalyzerVerifier.VerifyAnalyzerAsync(testCode, expected);
         }
