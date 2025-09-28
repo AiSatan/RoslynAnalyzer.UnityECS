@@ -21,6 +21,7 @@ namespace RoslynCustomAnalyzer.Tests
             public struct EasyJointAnchor : Unity.Entities.IComponentData {}
             public struct EasyJointTarget : Unity.Entities.IComponentData {}
             public struct PostTransformMatrix : Unity.Entities.IComponentData {}
+            public struct CharacterAspect {}
         ";
 
         [Fact]
@@ -29,7 +30,7 @@ namespace RoslynCustomAnalyzer.Tests
             var testCode = Stubs + @"
                 public partial struct EasyJointScaleProcessorSystemJob : Unity.Entities.IJobEntity
                 {
-                    public void Execute(Unity.Entities.Entity {|#0:entity|}, EasyJointAutoScaleRequired {|#1:baseScale|}, EasyJointAnchor {|#2:anchor|}, EasyJointTarget {|#3:target|}, PostTransformMatrix {|#4:postTransformMatrix|})
+                    public void Execute(Unity.Entities.Entity {|#0:entity|}, EasyJointAutoScaleRequired {|#1:baseScale|}, EasyJointAnchor {|#2:anchor|}, EasyJointTarget {|#3:target|}, PostTransformMatrix {|#4:postTransformMatrix|}, CharacterAspect characterAspect)
                     {
                     }
                 }";
@@ -63,7 +64,7 @@ namespace RoslynCustomAnalyzer.Tests
             var testCode = Stubs + @"
                 public partial struct EasyJointScaleProcessorSystemJob : Unity.Entities.IJobEntity
                 {
-                    public void Execute([ChunkIndexInQuery] in int index, in Unity.Entities.Entity entity, in EasyJointAutoScaleRequired baseScale, in EasyJointAnchor anchor, in EasyJointTarget target, ref PostTransformMatrix postTransformMatrix)
+                    public void Execute([ChunkIndexInQuery] in int index, in Unity.Entities.Entity entity, in EasyJointAutoScaleRequired baseScale, in EasyJointAnchor anchor, in EasyJointTarget target, ref PostTransformMatrix postTransformMatrix, CharacterAspect characterAspect)
                     {
                     }
                 }";

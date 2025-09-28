@@ -46,6 +46,15 @@ namespace RoslynCustomAnalyzer
                 if (parameter.Modifiers.Any(m => m.IsKind(SyntaxKind.InKeyword) || m.IsKind(SyntaxKind.RefKeyword)))
                     continue;
 
+                // Get the parameter type symbol
+                var parameterType = context.SemanticModel.GetTypeInfo(parameter.Type).Type as INamedTypeSymbol;
+                if (parameterType == null) continue;
+
+                // Only require 'in' or 'ref' for Entity or types implementing IComponentData
+                bool isEntity = parameterType.Name == "Entity" && parameterType.ContainingNamespace?.ToDisplayString() == "Unity.Entities";
+                bool isComponentData = parameterType.AllInterfaces.Any(i => i.Name == "IComponentData");
+                if (!isEntity && !isComponentData) continue;
+
                 // Report diagnostic for parameters without 'in' or 'ref'
                 var diagnostic = Diagnostic.Create(Rule, parameter.Identifier.GetLocation(), parameter.Identifier.Text);
                 context.ReportDiagnostic(diagnostic);
