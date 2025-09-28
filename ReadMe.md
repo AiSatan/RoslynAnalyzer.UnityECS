@@ -10,6 +10,9 @@ This analyzer includes rules to enforce best practices in Unity Dots development
 
 - Enforce explicit read-only parameters for `SystemAPI.GetComponentLookup` calls
 - Warn about modifications to read-only component copies that won't be persisted
+- Enforce 'in' or 'ref' parameters in Execute methods for IJobEntity
+- Enforce entity removal for components implementing `IEntityMustBeRemoved`
+- Enforce component removal for components implementing `IComponentMustBeRemoved`
 
 ## Installation
 
@@ -46,6 +49,9 @@ You can configure the analyzer rules in your `.editorconfig` file:
 [*.cs]
 dotnet_diagnostic.UnityRedDots001.severity = warning
 dotnet_diagnostic.UnityRedDots002.severity = warning
+dotnet_diagnostic.UnityRedDots003.severity = warning
+dotnet_diagnostic.UnityRedDots004.severity = warning
+dotnet_diagnostic.UnityRedDots005.severity = warning
 ```
 
 ## Custom Warnings
@@ -54,6 +60,9 @@ dotnet_diagnostic.UnityRedDots002.severity = warning
 |----|-------|-------------|----------|
 | UnityRedDots001 | Modification of read-only component copy | Variable '{0}' is a copy from a [ReadOnly] source and will not be saved | Warning |
 | UnityRedDots002 | GetComponentLookup missing read-only parameter | SystemAPI.GetComponentLookup must explicitly specify the read-only parameter (true or false) | Warning |
+| UnityRedDots003 | Parameter in Execute method must be 'in' or 'ref' | Parameter '{0}' in Execute method must be 'in' or 'ref' | Warning |
+| UnityRedDots004 | Entity not removed for component implementing IEntityMustBeRemoved | Entity was not removed for component '{0}' | Warning |
+| UnityRedDots005 | Component not removed for component implementing IComponentMustBeRemoved | Component '{0}' was not removed | Warning |
 
 ## Building from Source
 
