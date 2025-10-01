@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,8 +11,8 @@ namespace RoslynCustomAnalyzer
     public class EnforceGetComponentLookupParameterAnalyzer : DiagnosticAnalyzer
     {
         public const string DiagnosticId = "UnityRedDots002";
-        private static readonly LocalizableString Title = "GetComponentLookup missing read-only parameter";
-        private static readonly LocalizableString MessageFormat = "SystemAPI.GetComponentLookup must explicitly specify the read-only parameter (true or false)";
+        private static readonly LocalizableString Title = "Lookup method missing read-only parameter";
+        private static readonly LocalizableString MessageFormat = "SystemAPI.GetComponentLookup and SystemAPI.GetBufferLookup must explicitly specify the read-only parameter (true or false)";
         private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, "Correctness", DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
@@ -31,8 +31,9 @@ namespace RoslynCustomAnalyzer
             // Check if the method call is a member access (e.g., "object.Method()")
             if (!(invocation.Expression is MemberAccessExpressionSyntax memberAccess)) return;
 
-            // Check if the method name is "GetComponentLookup"
-            if (memberAccess.Name.Identifier.Text != "GetComponentLookup") return;
+            // Check if the method name is "GetComponentLookup" or "GetBufferLookup"
+            var methodName = memberAccess.Name.Identifier.Text;
+            if (methodName != "GetComponentLookup" && methodName != "GetBufferLookup") return;
             
             // Use the semantic model to robustly check if the call is on Unity.Entities.SystemAPI
             var methodSymbol = context.SemanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;

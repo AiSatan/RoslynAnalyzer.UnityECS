@@ -49,11 +49,25 @@ namespace RoslynCustomAnalyzer
                 var parameterType = context.SemanticModel.GetTypeInfo(parameter.Type).Type as INamedTypeSymbol;
                 if (parameterType == null) continue;
 
-                bool isComponentData = parameterType.AllInterfaces.Any(i => i.Name == "IComponentData");
-                bool implementsMustBeRemoved = parameterType.AllInterfaces.Any(i => i.Name == "IComponentMustBeRemoved");
-                if (isComponentData && implementsMustBeRemoved)
+                INamedTypeSymbol componentType = null;
+                if (parameterType.Name == "DynamicBuffer" && parameterType.ContainingNamespace?.ToDisplayString() == "Unity.Entities" && parameterType.TypeArguments.Length > 0)
                 {
-                    componentsToCheck.Add((parameterType, parameter.Identifier.GetLocation(), parameter.Identifier.Text));
+                    // For DynamicBuffer<T>, check T
+                    componentType = parameterType.TypeArguments[0] as INamedTypeSymbol;
+                }
+                else
+                {
+                    componentType = parameterType;
+                }
+
+                if (componentType != null)
+                {
+                    bool isComponentData = componentType.AllInterfaces.Any(i => i.Name == "IComponentData" || i.Name == "IBufferElementData");
+                    bool implementsMustBeRemoved = componentType.AllInterfaces.Any(i => i.Name == "IComponentMustBeRemoved");
+                    if (isComponentData && implementsMustBeRemoved)
+                    {
+                        componentsToCheck.Add((componentType, parameter.Identifier.GetLocation(), parameter.Identifier.Text));
+                    }
                 }
             }
 
@@ -69,7 +83,7 @@ namespace RoslynCustomAnalyzer
                         if (arg.Expression is TypeOfExpressionSyntax typeofExpr)
                         {
                             var attrTypeSymbol = context.SemanticModel.GetTypeInfo(typeofExpr.Type).Type as INamedTypeSymbol;
-                            if (attrTypeSymbol != null && attrTypeSymbol.AllInterfaces.Any(i => i.Name == "IComponentData") && attrTypeSymbol.AllInterfaces.Any(i => i.Name == "IComponentMustBeRemoved"))
+                            if (attrTypeSymbol != null && (attrTypeSymbol.AllInterfaces.Any(i => i.Name == "IComponentData") || attrTypeSymbol.AllInterfaces.Any(i => i.Name == "IBufferElementData")) && attrTypeSymbol.AllInterfaces.Any(i => i.Name == "IComponentMustBeRemoved"))
                             {
                                 componentsToCheck.Add((attrTypeSymbol, typeofExpr.GetLocation(), attrTypeSymbol.Name));
                             }
